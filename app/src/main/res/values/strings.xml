@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">BollingWrldsTester</string>
+    <string name="ble_location_required">Bluetooth required</string>
+</resources>
