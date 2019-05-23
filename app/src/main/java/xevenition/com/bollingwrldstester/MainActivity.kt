@@ -5,21 +5,58 @@ import android.bluetooth.BluetoothAdapter
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.support.v4.app.ActivityCompat
-import android.support.v4.content.ContextCompat
-import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.wrlds.sdk.Ball
 
+@Suppress("UNUSED_ANONYMOUS_PARAMETER")
 class MainActivity : AppCompatActivity() {
 
+    private var deviceAddress: String? = null
     private var ball: Ball? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         requestUseBluetooth()
+    }
+
+    private fun createBall() {
+        ball = Ball(this)
+        setUpListeners()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        ball?.onStart(true)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        ball?.onStop(true)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        ball?.onDestroy()
+    }
+
+    private fun setUpListeners() {
+        ball?.setOnBounceListener { bounceType, totalForce ->
+            Log.d(TAG, "Bound type: $bounceType and total force: $totalForce")
+        }
+        ball?.setOnConnectionStateChangedListener { connectionState, stateMessage ->
+            when (connectionState) {
+                Ball.ConnectionState.CONNECTION_FAILED -> {
+                    Toast.makeText(this, "CONNECTION_FAILED", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+        ball?.setOnShakeListener { }
+        ball?.setOnFifoDataReceivedListener { }
     }
 
     private fun requestUseBluetooth() {
@@ -40,35 +77,16 @@ class MainActivity : AppCompatActivity() {
     private fun activateBluetooth() {
         val mBluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
         if (mBluetoothAdapter == null) {
-            //Damn device have no bluetooth, exit app
+            //Device have no bluetooth, exit app
             Toast.makeText(this, "No bluetooth no fun!", Toast.LENGTH_LONG).show()
             finish()
-        } else if (!mBluetoothAdapter?.isEnabled) {
+        } else if (!mBluetoothAdapter.isEnabled) {
             val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
             ActivityCompat.startActivityForResult(this, enableBtIntent, REQUEST_ENABLE_BT, null)
         } else {
             //bluetooth already running!
             createBall()
         }
-    }
-
-    private fun createBall() {
-        Ball.create(this) {
-            ball = it
-            setUpListeners()
-            ball?.scanForDevices()
-        }
-    }
-
-    private fun setUpListeners() {
-        ball?.setOnBounceListener { bounceType, totalForce ->
-            Log.d(TAG, "Bounde type: $bounceType and total force: $totalForce")
-        }
-        ball?.setOnConnectionStateChangedListener { connectionState, stateMessage ->
-
-        }
-        ball?.setOnShakeListener { }
-        ball?.setOnFifoDataRecievedListener { }
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
@@ -79,7 +97,7 @@ class MainActivity : AppCompatActivity() {
                     //we have bluetooth permission! Let's turn it on!
                     activateBluetooth()
                 } else {
-                    //Damn, exit app
+                    //Permission not granted, exit app
                     Toast.makeText(this, "No bluetooth no fun!", Toast.LENGTH_LONG).show()
                     finish()
                 }
@@ -96,17 +114,12 @@ class MainActivity : AppCompatActivity() {
                     //Bluetooth is turned on! Lets do this!
                     createBall()
                 } else {
-                    //Damn, exit app
+                    //Exit app
                     Toast.makeText(this, "No bluetooth no fun!", Toast.LENGTH_LONG).show()
                     finish()
                 }
             }
         }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        ball?.onDestroy()
     }
 
     companion object {
